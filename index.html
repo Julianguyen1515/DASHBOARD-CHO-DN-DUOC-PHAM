@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>AI CFO Dashboard – Hoàng Hải Pharma</title>
+<style>
+  :root {
+    --navy:#0D2B55; --teal:#009688; --teal-light:#B2DFDB; --teal-dark:#00796B;
+    --amber:#F59E0B; --red:#EF4444; --green:#10B981; --purple:#7C3AED;
+    --blue:#1E40AF; --gray-bg:#F4F7F9; --white:#FFF; --text:#1E293B; --muted:#64748B;
+    --shadow:0 2px 12px rgba(0,0,0,0.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--gray-bg);color:var(--text);max-width:480px;margin:0 auto;min-height:100vh}
+
+  .header{background:var(--navy);padding:14px 14px 0;position:sticky;top:0;z-index:100}
+  .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .logo{display:flex;align-items:center;gap:9px}
+  .logo-icon{width:36px;height:36px;background:var(--teal);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px}
+  .logo-text .co{font-size:10px;color:var(--teal-light);letter-spacing:.4px}
+  .logo-text .ti{font-size:13px;font-weight:700;color:#fff}
+  .header-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+  .date-badge{background:rgba(255,255,255,.12);border-radius:20px;padding:3px 10px;color:var(--teal-light);font-size:10px}
+  .status-dot{display:flex;align-items:center;gap:5px;font-size:10px;color:rgba(255,255,255,.6)}
+  .dot{width:7px;height:7px;border-radius:50%;background:#9CA3AF}
+  .dot.live{background:var(--green);box-shadow:0 0 0 2px rgba(16,185,129,.3);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+  .nav{display:flex;overflow-x:auto;gap:2px;scrollbar-width:none}
+  .nav::-webkit-scrollbar{display:none}
+  .nav-btn{flex-shrink:0;padding:7px 12px;border:none;background:transparent;color:rgba(255,255,255,.45);font-size:11px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap}
+  .nav-btn.active{color:var(--teal-light);border-bottom-color:var(--teal)}
+
+  .main{padding:12px 12px 80px}
+  .section{display:none}
+  .section.active{display:block}
+
+  .card{background:#fff;border-radius:14px;padding:14px;margin-bottom:11px;box-shadow:var(--shadow)}
+  .card-header{display:flex;align-items:center;gap:8px;margin-bottom:11px}
+  .card-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+  .card-title{font-size:13px;font-weight:700;color:var(--navy)}
+  .card-sub{font-size:10px;color:var(--muted)}
+
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px}
+  .stat-box{background:var(--gray-bg);border-radius:10px;padding:11px}
+  .stat-label{font-size:10px;color:var(--muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.4px}
+  .stat-value{font-size:19px;font-weight:800;color:var(--navy)}
+  .stat-value.g{color:var(--green)}.stat-value.r{color:var(--red)}.stat-value.a{color:var(--amber)}
+  .stat-change{font-size:10px;color:var(--muted);margin-top:1px}
+
+  .alert-item{border-radius:10px;padding:11px 13px;margin-bottom:8px;border-left:4px solid}
+  .alert-item.danger{background:#FEF2F2;border-color:var(--red)}
+  .alert-item.warning{background:#FFFBEB;border-color:var(--amber)}
+  .alert-item.success{background:#F0FDF4;border-color:var(--green)}
+  .alert-item.info{background:#EFF6FF;border-color:var(--blue)}
+  .alert-item.teal{background:#F0FDFA;border-color:var(--teal)}
+  .alert-title{font-size:12px;font-weight:700;margin-bottom:3px}
+  .alert-desc{font-size:11px;color:var(--muted);line-height:1.5}
+
+  .table-wrap{overflow-x:auto;border-radius:10px;border:1px solid #E8EDF2}
+  table{width:100%;border-collapse:collapse;font-size:11px;min-width:480px}
+  th{background:var(--navy);color:#fff;padding:7px 9px;text-align:left;font-weight:600}
+  td{padding:7px 9px;border-bottom:1px solid #F1F5F9;color:var(--text)}
+  tr:last-child td{border-bottom:none}
+  tr.rw{background:#FFFBEB}tr.rd{background:#FEF2F2}
+  .badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600}
+  .badge.d{background:#FEE2E2;color:#B91C1C}.badge.w{background:#FEF3C7;color:#92400E}.badge.ok{background:#D1FAE5;color:#065F46}
+
+  .chat-wrap{display:flex;flex-direction:column;gap:8px}
+  .chat-msg{border-radius:12px;padding:10px 13px;max-width:88%;font-size:12px;line-height:1.55}
+  .chat-msg.user{background:var(--navy);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+  .chat-msg.ai{background:#fff;border:1px solid #E2E8F0;align-self:flex-start;border-bottom-left-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  .chat-msg.ai strong{color:var(--teal-dark)}
+  .chat-label{font-size:9px;color:var(--muted);margin-bottom:2px;text-transform:uppercase;letter-spacing:.5px}
+
+  .pl-table{width:100%;border-collapse:collapse;font-size:12px}
+  .pl-table th{background:#F8FAFC;color:var(--muted);font-size:10px;padding:6px 9px;text-align:right;font-weight:600;border-bottom:1px solid #E2E8F0}
+  .pl-table th:first-child{text-align:left}
+  .pl-table td{padding:8px 9px;border-bottom:1px solid #F1F5F9;text-align:right}
+  .pl-table td:first-child{text-align:left;font-weight:500}
+  .pl-table tr.hl td{background:#F0FDF4;font-weight:700;color:var(--navy)}
+  .pl-table td.dn{color:var(--red);font-weight:600}
+
+  .progress-wrap{margin-bottom:9px}
+  .progress-label{display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px}
+  .progress-bar{height:6px;background:#E2E8F0;border-radius:99px;overflow:hidden}
+  .progress-fill{height:100%;border-radius:99px;transition:width .6s ease}
+  .divider{height:1px;background:#F1F5F9;margin:9px 0}
+  .sec-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin:14px 0 8px}
+
+  .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:1px solid #E2E8F0;display:flex;z-index:100;box-shadow:0 -2px 12px rgba(0,0,0,.08)}
+  .bottom-btn{flex:1;padding:9px 4px 7px;border:none;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:9px;color:var(--muted);transition:color .2s}
+  .bottom-btn.active{color:var(--teal)}
+  .bottom-btn .ic{font-size:19px}
+
+  .summary-banner{background:linear-gradient(135deg,var(--navy) 0%,#065A82 100%);border-radius:16px;padding:16px;margin-bottom:12px;color:#fff}
+  .summary-banner .gr{font-size:11px;color:var(--teal-light);margin-bottom:3px}
+  .summary-banner .hl{font-size:16px;font-weight:800;line-height:1.3;margin-bottom:12px}
+  .kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+  .kpi-mini{background:rgba(255,255,255,.12);border-radius:9px;padding:9px 6px;text-align:center}
+  .kpi-mini .v{font-size:15px;font-weight:800}
+  .kpi-mini .l{font-size:9px;color:rgba(255,255,255,.6);margin-top:2px;line-height:1.3}
+
+  .ar-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid #F1F5F9}
+  .ar-row:last-child{border-bottom:none}
+  .ar-name{font-size:12px;font-weight:600}
+  .ar-sub{font-size:10px;color:var(--muted)}
+  .ar-amount{font-size:13px;font-weight:700}
+  .ar-age{font-size:10px}
+
+  /* SETTINGS */
+  .settings-section{padding:4px 0}
+  .settings-label{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+  .settings-input{width:100%;border:1px solid #E2E8F0;border-radius:9px;padding:10px 12px;font-size:12px;color:var(--text);outline:none;transition:border .2s}
+  .settings-input:focus{border-color:var(--teal)}
+  .settings-hint{font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5}
+  .btn-primary{width:100%;background:var(--teal);color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;margin-top:6px}
+  .btn-secondary{width:100%;background:#fff;color:var(--navy);border:1px solid #E2E8F0;border-radius:10px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;margin-top:6px}
+  .loading-overlay{position:fixed;inset:0;background:rgba(13,43,85,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:14px}
+  .spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading-text{color:#fff;font-size:14px;font-weight:600}
+  .loading-sub{color:rgba(255,255,255,.6);font-size:11px}
+  .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1E293B;color:#fff;padding:10px 20px;border-radius:20px;font-size:12px;z-index:998;opacity:0;transition:opacity .3s;white-space:nowrap}
+  .toast.show{opacity:1}
+
+  .step-guide{display:flex;gap:11px;margin-bottom:12px}
+  .step-num{width:26px;height:26px;border-radius:50%;background:var(--teal);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+  .step-body{flex:1}
+  .step-title{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:2px}
+  .step-desc{font-size:11px;color:var(--muted);line-height:1.6}
+  .step-code{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:7px;padding:7px 10px;font-size:10px;color:var(--navy);margin-top:5px;word-break:break-all;font-family:monospace}
+  .copy-btn{background:var(--gray-bg);border:none;border-radius:6px;padding:4px 10px;font-size:10px;cursor:pointer;color:var(--teal-dark);font-weight:600;margin-top:5px}
+</style>
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay" id="loadingOverlay" style="display:none">
+  <div class="spinner"></div>
+  <div class="loading-text">Đang tải dữ liệu...</div>
+  <div class="loading-sub" id="loadingMsg">Kết nối Google Sheets</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-top">
+    <div class="logo">
+      <div class="logo-icon">💊</div>
+      <div class="logo-text">
+        <div class="co" id="companyName">HOÀNG HẢI PHARMA</div>
+        <div class="ti">AI CFO Dashboard</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="date-badge" id="todayDate"></span>
+      <div class="status-dot"><div class="dot" id="statusDot"></div><span id="statusText">Demo data</span></div>
+    </div>
+  </div>
+  <div class="nav">
+    <button class="nav-btn active" onclick="showTab('home',this)">🏠 Tổng quan</button>
+    <button class="nav-btn" onclick="showTab('cashflow',this)">💰 Dòng tiền</button>
+    <button class="nav-btn" onclick="showTab('inventory',this)">📦 Tồn kho</button>
+    <button class="nav-btn" onclick="showTab('tax',this)">🧾 Thuế</button>
+    <button class="nav-btn" onclick="showTab('ar',this)">📋 Công nợ</button>
+    <button class="nav-btn" onclick="showTab('pl',this)">📈 P&L</button>
+    <button class="nav-btn" onclick="showTab('chat',this)">🤖 AI Chat</button>
+    <button class="nav-btn" onclick="showTab('settings',this)">⚙️ Cài đặt</button>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- HOME -->
+<div class="section active" id="home">
+  <div class="summary-banner">
+    <div class="gr">☀️ Chào buổi sáng, Ban Giám đốc</div>
+    <div class="hl" id="alertHeadline">Đang tải dữ liệu...</div>
+    <div class="kpi-row">
+      <div class="kpi-mini"><div class="v" id="kpi1" style="color:#4ADE80">—</div><div class="l">Dòng tiền 7 ngày</div></div>
+      <div class="kpi-mini"><div class="v" id="kpi2" style="color:#FCD34D">—</div><div class="l">Hàng cận date</div></div>
+      <div class="kpi-mini"><div class="v" id="kpi3" style="color:#F87171">—</div><div class="l">HĐ rủi ro thuế</div></div>
+    </div>
+  </div>
+
+  <div class="sec-title">⚡ Cần xử lý hôm nay</div>
+  <div id="alertsContainer"></div>
+
+  <div class="sec-title">📊 Tình trạng tổng thể</div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#E0F2F1">💰</div>
+      <div><div class="card-title">Dòng tiền</div><div class="card-sub" id="cfUpdateTime">Đang tải...</div></div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-label">Số dư ngân hàng</div><div class="stat-value" id="h-bank">—</div></div>
+      <div class="stat-box"><div class="stat-label">Dự báo 7 ngày</div><div class="stat-value g" id="h-cf7">—</div></div>
+      <div class="stat-box"><div class="stat-label">Phải thu</div><div class="stat-value" id="h-ar">—</div></div>
+      <div class="stat-box"><div class="stat-label">Phải trả NCC</div><div class="stat-value a" id="h-ap">—</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#FFF3E0">📦</div>
+      <div><div class="card-title">Tồn kho</div><div class="card-sub" id="invSubtitle">Đang tải...</div></div>
+    </div>
+    <div id="invProgressContainer"></div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#F3E8FF">📈</div>
+      <div><div class="card-title">P&L tháng gần nhất</div><div class="card-sub">Ước tính</div></div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-label">Doanh thu</div><div class="stat-value" id="h-rev">—</div></div>
+      <div class="stat-box"><div class="stat-label">Lợi nhuận gộp</div><div class="stat-value g" id="h-gp">—</div></div>
+      <div class="stat-box"><div class="stat-label">Biên LNG</div><div class="stat-value" id="h-gpm">—</div></div>
+      <div class="stat-box"><div class="stat-label">EBIT</div><div class="stat-value" id="h-ebit">—</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- CASH FLOW -->
+<div class="section" id="cashflow">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#E0F2F1">💰</div>
+      <div><div class="card-title">Dòng tiền tổng hợp</div><div class="card-sub">Dự báo AI</div></div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-label">Số dư hiện tại</div><div class="stat-value" id="cf-bank">—</div></div>
+      <div class="stat-box"><div class="stat-label">Dư nợ bank</div><div class="stat-value a" id="cf-loan">—</div></div>
+      <div class="stat-box"><div class="stat-label">Tiền vào 7 ngày</div><div class="stat-value g" id="cf-in7">—</div></div>
+      <div class="stat-box"><div class="stat-label">Tiền ra 7 ngày</div><div class="stat-value r" id="cf-out7">—</div></div>
+    </div>
+  </div>
+  <div class="sec-title">🤖 AI Phân tích</div>
+  <div id="cfAlertsContainer"></div>
+  <div class="sec-title">🏦 Dư nợ vay ngân hàng</div>
+  <div class="card" id="loansContainer"></div>
+</div>
+
+<!-- INVENTORY -->
+<div class="section" id="inventory">
+  <div class="stat-grid" style="margin-bottom:11px">
+    <div class="stat-box"><div class="stat-label">Tổng tồn kho</div><div class="stat-value" id="inv-total">—</div></div>
+    <div class="stat-box"><div class="stat-label">Vòng quay TB</div><div class="stat-value" id="inv-turnover">—</div></div>
+    <div class="stat-box"><div class="stat-label">Cận date</div><div class="stat-value r" id="inv-near">—</div></div>
+    <div class="stat-box"><div class="stat-label">Nguy cơ hết</div><div class="stat-value a" id="inv-low">—</div></div>
+  </div>
+  <div class="sec-title">🚨 Cần xử lý ngay</div>
+  <div id="invAlertsContainer"></div>
+  <div class="sec-title">📋 Chi tiết tồn kho</div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Mặt hàng</th><th>Lô</th><th>Hạn SD</th><th>Tồn</th><th>Giá trị</th><th>Trạng thái</th></tr></thead>
+      <tbody id="invTableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- TAX -->
+<div class="section" id="tax">
+  <div class="stat-grid" style="margin-bottom:11px">
+    <div class="stat-box"><div class="stat-label">HĐ rủi ro</div><div class="stat-value r" id="tax-risk">—</div></div>
+    <div class="stat-box"><div class="stat-label">Dự kiến hoàn thuế</div><div class="stat-value g" id="tax-refund">—</div></div>
+    <div class="stat-box"><div class="stat-label">Thuế GTGT phải nộp</div><div class="stat-value" id="tax-due">—</div></div>
+    <div class="stat-box"><div class="stat-label">Ngày nộp gần nhất</div><div class="stat-value a" id="tax-deadline">—</div></div>
+  </div>
+  <div id="taxAlertsContainer"></div>
+  <div class="sec-title">📋 Tỷ lệ hóa đơn hợp lệ</div>
+  <div class="card" id="taxProgressContainer"></div>
+</div>
+
+<!-- AR -->
+<div class="section" id="ar">
+  <div class="stat-grid" style="margin-bottom:11px">
+    <div class="stat-box"><div class="stat-label">Tổng phải thu</div><div class="stat-value" id="ar-total">—</div></div>
+    <div class="stat-box"><div class="stat-label">Quá hạn >30N</div><div class="stat-value r" id="ar-over30">—</div></div>
+    <div class="stat-box"><div class="stat-label">Nguy cơ mất</div><div class="stat-value r" id="ar-risk">—</div></div>
+    <div class="stat-box"><div class="stat-label">Thu dự kiến T7</div><div class="stat-value g" id="ar-expect">—</div></div>
+  </div>
+  <div id="arAlertsContainer"></div>
+  <div class="sec-title">📋 Chi tiết công nợ</div>
+  <div class="card" id="arListContainer"></div>
+</div>
+
+<!-- P&L -->
+<div class="section" id="pl">
+  <div id="plAlertContainer"></div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#F3E8FF">📈</div>
+      <div><div class="card-title">Kết quả kinh doanh</div><div class="card-sub">3 tháng gần nhất (tỷ đồng)</div></div>
+    </div>
+    <table class="pl-table">
+      <thead><tr id="plHeader"></tr></thead>
+      <tbody id="plBody"></tbody>
+    </table>
+  </div>
+  <div class="sec-title">📊 Doanh thu theo nhóm sản phẩm</div>
+  <div class="card" id="plSegContainer"></div>
+</div>
+
+<!-- AI CHAT -->
+<div class="section" id="chat">
+  <div style="background:linear-gradient(135deg,var(--navy),#065A82);border-radius:14px;padding:14px;margin-bottom:12px;color:#fff">
+    <div style="font-size:10px;color:var(--teal-light);margin-bottom:3px">🤖 AI CFO Assistant</div>
+    <div style="font-size:12px;line-height:1.5">Xin chào! Tôi có thể trả lời câu hỏi về dòng tiền, tồn kho, thuế, công nợ và P&L của công ty.</div>
+  </div>
+  <div class="chat-wrap" id="chatMessages"></div>
+  <div style="margin-top:14px">
+    <div class="sec-title">💬 Câu hỏi gợi ý</div>
+    <div id="chatSuggestions" style="display:flex;flex-direction:column;gap:7px"></div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="section" id="settings">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#E0F2F1">🔗</div>
+      <div><div class="card-title">Kết nối Google Sheets</div><div class="card-sub">Nhập URL để đọc dữ liệu thực</div></div>
+    </div>
+
+    <div class="sec-title" style="margin-top:0">📋 Hướng dẫn</div>
+    <div class="step-guide">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">Tạo Google Sheet từ template</div>
+        <div class="step-desc">Mở link template dưới đây, tạo bản sao (File → Make a copy)</div>
+        <button class="copy-btn" onclick="copyTemplate()">📋 Sao chép link template</button>
+      </div>
+    </div>
+    <div class="step-guide">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">Publish Sheet ra CSV</div>
+        <div class="step-desc">File → Share → Publish to web → Chọn tab "Dashboard" → Format: CSV → Publish → Copy link</div>
+      </div>
+    </div>
+    <div class="step-guide">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">Dán URL vào ô dưới đây</div>
+        <div class="step-desc">App sẽ tự đọc dữ liệu mỗi khi mở hoặc bấm Làm mới</div>
+      </div>
+    </div>
+
+    <div class="settings-section" style="margin-top:6px">
+      <div class="settings-label">Google Sheet CSV URL</div>
+      <input class="settings-input" id="sheetsUrl" type="url" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv" />
+      <div class="settings-hint">Đây là link publish CSV từ tab Dashboard trong Google Sheet của bạn.</div>
+    </div>
+
+    <button class="btn-primary" onclick="saveAndLoad()">🔄 Lưu & Tải dữ liệu</button>
+    <button class="btn-secondary" onclick="useDemo()">🎭 Dùng dữ liệu demo</button>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#F3E8FF">🏢</div>
+      <div><div class="card-title">Thông tin công ty</div></div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-label">Tên công ty</div>
+      <input class="settings-input" id="settingCompany" value="HOÀNG HẢI PHARMA" />
+    </div>
+    <button class="btn-primary" onclick="saveSettings()" style="margin-top:10px">💾 Lưu cài đặt</button>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#FEF3C7">📝</div>
+      <div><div class="card-title">Cấu trúc Google Sheet</div><div class="card-sub">Tab Dashboard cần có các cột sau</div></div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);line-height:1.8">
+      <b>Cột A:</b> key (tên biến)<br>
+      <b>Cột B:</b> value (giá trị)<br>
+      <b>Cột C:</b> label (nhãn hiển thị)<br>
+      <b>Cột D:</b> type (loại: number/text/alert)<br>
+      <b>Cột E:</b> alert_level (danger/warning/success/info/teal)<br><br>
+      Xem file <b>HUONG_DAN_GOOGLE_SHEET.html</b> trong thư mục để biết chi tiết.
+    </div>
+  </div>
+</div>
+
+</div><!-- end main -->
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <button class="bottom-btn active" onclick="showTab('home',null,'bnav-home')" id="bnav-home"><span class="ic">🏠</span>Tổng quan</button>
+  <button class="bottom-btn" onclick="showTab('cashflow',null,'bnav-cashflow')" id="bnav-cashflow"><span class="ic">💰</span>Dòng tiền</button>
+  <button class="bottom-btn" onclick="showTab('inventory',null,'bnav-inventory')" id="bnav-inventory"><span class="ic">📦</span>Tồn kho</button>
+  <button class="bottom-btn" onclick="showTab('pl',null,'bnav-pl')" id="bnav-pl"><span class="ic">📈</span>P&L</button>
+  <button class="bottom-btn" onclick="showTab('settings',null,'bnav-settings')" id="bnav-settings"><span class="ic">⚙️</span>Cài đặt</button>
+</div>
+
+<script>
+// ─── DEMO DATA ───────────────────────────────────────────────
+const DEMO = {
+  company: "HOÀNG HẢI PHARMA",
+  updateTime: "07:00 hôm nay",
+  alertCount: 3,
+  alertHeadline: "Hôm nay có 3 cảnh báo cần xử lý",
+  kpi1: "+1.7 tỷ", kpi2: "3", kpi3: "5",
+  bank: "14.2 tỷ", cf7: "+1.7 tỷ", ar: "8.4 tỷ", ap: "5.1 tỷ",
+  cfLoan: "22.5 tỷ", cfIn7: "8.2 tỷ", cfOut7: "6.5 tỷ",
+  invTotal: "18.4 tỷ", invTurnover: "45 ngày", invNear: "3 SKU", invLow: "2 SKU",
+  taxRisk: "5", taxRefund: "800 tr", taxDue: "320 tr", taxDeadline: "20/7",
+  arTotal: "8.4 tỷ", arOver30: "3.1 tỷ", arRisk: "1.52 tỷ", arExpect: "4.8 tỷ",
+  rev: "12.3 tỷ", gp: "3.2 tỷ", gpm: "26%", ebit: "1.75 tỷ",
+  alerts: [
+    {level:"danger", title:"🚨 Thiếu hụt dòng tiền tháng 7", desc:"Dự kiến thiếu 2.3 tỷ do đáo hạn BIDV + NCC A. Cần hành động trước 15/7."},
+    {level:"warning", title:"⚠️ 3 mặt hàng cận date — 1.8 tỷ", desc:"Collagen Peptide L2025 hết hạn 10/07/26 (còn 39 ngày). Đề xuất chiết khấu 5%."},
+    {level:"danger", title:"🚨 Công ty ABC nợ quá hạn 75 ngày", desc:"Dư nợ 1.2 tỷ, rủi ro cao. Cần liên hệ thu hồi ngay."},
+  ],
+  cfAlerts: [
+    {level:"success", title:"✅ Dự báo 7 ngày — Thặng dư +1.7 tỷ", desc:"Tiền vào dự kiến 8.2 tỷ. Tiền ra 6.5 tỷ. Thanh khoản ổn định."},
+    {level:"danger", title:"🚨 Cảnh báo tháng 7 — Thiếu hụt 2.3 tỷ", desc:"Đáo hạn BIDV 1.5 tỷ + thanh toán NCC A 800 tr. Dự kiến thiếu tuần 15–20/7."},
+    {level:"teal", title:"💡 Đề xuất: Đẩy nhanh thu công nợ", desc:"Thu hồi Bệnh viện Q7 (2.8 tỷ) trước 12/7 để đảm bảo thanh khoản."},
+    {level:"info", title:"📌 Lịch thanh toán NCC đề xuất", desc:"Thanh toán NCC B: 15/7 sau nhận công nợ KH C 3.5 tỷ."},
+  ],
+  loans: [
+    {name:"BIDV", detail:"Đáo hạn 18/7", amount:"1.5 tỷ", pct:75, color:"var(--red)"},
+    {name:"Vietcombank", detail:"Đáo hạn 05/9", amount:"3.2 tỷ", pct:55, color:"var(--amber)"},
+    {name:"Techcombank", detail:"Đáo hạn 12/11", amount:"18 tỷ", pct:30, color:"var(--green)"},
+  ],
+  invProgress: [
+    {label:"Hàng ổn định (12)", pct:52, value:"52%", color:"var(--green)"},
+    {label:"Cần theo dõi (8)", pct:35, value:"35%", color:"var(--amber)"},
+    {label:"Cận date / Hết hàng (3)", pct:13, value:"13%", color:"var(--red)"},
+  ],
+  invAlerts: [
+    {level:"danger", title:"🔴 Collagen Peptide L2025 — Hết hạn 10/07/26", desc:"Còn 39 ngày. 950 đv, giá trị 630 triệu. Đề xuất: chiết khấu 5%."},
+    {level:"warning", title:"⚠️ Vitamin C 1000mg L2024 — Hết hạn 15/08/26", desc:"Còn 75 ngày. 2,500 đv, giá trị 450 triệu. Vòng quay 35 ngày."},
+    {level:"warning", title:"⚠️ Glucosamine 500mg — Tồn kho <15 ngày bán", desc:"Chỉ còn 12 ngày bán. Đặt hàng NCC ngay để tránh đứt hàng."},
+  ],
+  invRows: [
+    {name:"Collagen Peptide", lo:"L2025", han:"10/07/26", ton:"950", giatri:"630 tr", cls:"rd", badge:"d", badgeText:"Hết hạn 39N"},
+    {name:"Vitamin C 1000mg", lo:"L2024", han:"15/08/26", ton:"2,500", giatri:"450 tr", cls:"rw", badge:"w", badgeText:"Cận date"},
+    {name:"Glucosamine 500mg", lo:"L2025", han:"20/12/26", ton:"180", giatri:"126 tr", cls:"rw", badge:"w", badgeText:"Sắp hết"},
+    {name:"Omega-3 Fish Oil", lo:"L2024", han:"20/10/26", ton:"1,800", giatri:"720 tr", cls:"", badge:"ok", badgeText:"Ổn định"},
+    {name:"Canxi D3", lo:"L2025", han:"30/11/26", ton:"3,200", giatri:"384 tr", cls:"", badge:"ok", badgeText:"Ổn định"},
+    {name:"Vitamin B Complex", lo:"L2025", han:"15/03/27", ton:"4,100", giatri:"492 tr", cls:"", badge:"ok", badgeText:"Ổn định"},
+  ],
+  taxAlerts: [
+    {level:"danger", title:"🚨 5 hóa đơn NCC mới thành lập <12 tháng", desc:"Tổng 1.24 tỷ. Kiểm tra hồ sơ trước khi kê khai."},
+    {level:"warning", title:"⚠️ 3 hóa đơn có giá trị bất thường", desc:"Cao hơn 3x lịch sử cùng NCC. Đối chiếu hợp đồng."},
+    {level:"success", title:"✅ Hoàn thuế GTGT tháng 6 — Ước 800 triệu", desc:"Chuẩn bị hồ sơ hoàn thuế trước 30/7."},
+    {level:"teal", title:"📅 Lịch nộp thuế tháng 7", desc:"GTGT: 20/7 — 320 tr\nTNDN tạm nộp: 31/7 — 180 tr\nThuế nhà thầu: 15/7 — 45 tr"},
+  ],
+  taxProgress: [
+    {label:"HĐ đầu vào hợp lệ (186/197)", pct:94, value:"94%", color:"var(--green)"},
+    {label:"HĐ cần kiểm tra thêm (8)", pct:4, value:"4%", color:"var(--amber)"},
+    {label:"HĐ rủi ro cao (5)", pct:2.5, value:"2%", color:"var(--red)"},
+  ],
+  arAlerts: [
+    {level:"danger", title:"🚨 Công ty ABC — 1.2 tỷ / 75 ngày", desc:"Rủi ro cao. Lịch sử 2 lần trễ hạn. Cần gặp trực tiếp hoặc gửi thông báo pháp lý."},
+    {level:"danger", title:"🚨 Phòng khám MN — 320 tr / 90 ngày", desc:"Nguy cơ mất nợ. Không phản hồi nhắc nhở. Chuyển sang xử lý pháp lý."},
+  ],
+  arRows: [
+    {name:"Bệnh viện Q7", sub:"Trong hạn — đúng cam kết", amount:"2.8 tỷ", age:"20 ngày", amtColor:"var(--green)", ageColor:"var(--green)"},
+    {name:"Công ty ABC", sub:"🚨 Rủi ro cao", amount:"1.2 tỷ", age:"75 ngày", amtColor:"var(--red)", ageColor:"var(--red)"},
+    {name:"Long Châu", sub:"Đang theo dõi", amount:"1.8 tỷ", age:"38 ngày", amtColor:"var(--navy)", ageColor:"var(--amber)"},
+    {name:"Nhà thuốc XYZ", sub:"Gửi nhắc nhở lần 2", amount:"450 tr", age:"45 ngày", amtColor:"var(--amber)", ageColor:"var(--amber)"},
+    {name:"Phòng khám MN", sub:"🚨 Nguy cơ mất nợ", amount:"320 tr", age:"90 ngày", amtColor:"var(--red)", ageColor:"var(--red)"},
+    {name:"Các KH khác", sub:"Bình thường", amount:"1.83 tỷ", age:"<30 ngày", amtColor:"var(--green)", ageColor:"var(--green)"},
+  ],
+  plHeaders: ["Chỉ tiêu","T4","T5","T6 (ước)"],
+  plRows: [
+    {label:"Doanh thu", vals:["11.2","12.8","12.3"], hl:false, dn:[false,false,false]},
+    {label:"Giá vốn", vals:["8.0","9.2","9.1"], hl:false, dn:[false,false,false]},
+    {label:"Lợi nhuận gộp", vals:["3.2","3.6","3.2"], hl:true, dn:[false,false,false]},
+    {label:"Biên LNG", vals:["28.6%","28.1%","26.0%"], hl:false, dn:[false,false,true]},
+    {label:"Chi phí BH+QL", vals:["1.4","1.5","1.45"], hl:false, dn:[false,false,false]},
+    {label:"EBIT", vals:["1.8","2.1","1.75"], hl:true, dn:[false,false,false]},
+    {label:"Lãi vay", vals:["0.42","0.40","0.40"], hl:false, dn:[false,false,false]},
+    {label:"LN trước thuế", vals:["1.38","1.70","1.35"], hl:false, dn:[false,false,false]},
+  ],
+  plAlert: {level:"warning", title:"⚠️ AI: Biên LNG tháng 6 giảm 2%", desc:"Nguyên nhân: giá vốn TPCN tăng 11%. Đề xuất rà soát lại giá mua đầu vào với NCC."},
+  plSegs: [
+    {label:"Thực phẩm chức năng", val:"5.8 tỷ (47%)", pct:47, color:"var(--teal)"},
+    {label:"Thuốc kê đơn", val:"3.9 tỷ (32%)", pct:32, color:"var(--navy)"},
+    {label:"Thuốc OTC", val:"1.8 tỷ (15%)", pct:15, color:"var(--blue)"},
+    {label:"Khác", val:"0.8 tỷ (6%)", pct:6, color:"#CBD5E1"},
+  ],
+  chatHistory: [
+    {role:"user", text:"Tháng này lãi bao nhiêu?"},
+    {role:"ai", text:"Lợi nhuận gộp tháng 6 ước đạt <strong>3.2 tỷ đồng</strong>, biên LNG 26%. Giảm 2% so tháng 5 do giá vốn TPCN tăng 11%. EBIT ước 1.75 tỷ."},
+    {role:"user", text:"Dòng tiền còn đủ trong bao lâu?"},
+    {role:"ai", text:"Với tốc độ chi hiện tại, quỹ tiền đảm bảo <strong>23 ngày</strong>. Tháng 7 có rủi ro thiếu 2.3 tỷ. Khuyến nghị thu công nợ BV Q7 (2.8 tỷ) trước 12/7."},
+  ],
+  chatSuggestions: [
+    {q:"Công nợ quá hạn trên 60 ngày?", a:"Có <strong>2 khách hàng</strong> nợ quá hạn trên 60 ngày:<br>• Công ty ABC: 1.2 tỷ – 75 ngày – Rủi ro cao<br>• Phòng khám MN: 320 tr – 90 ngày – Nguy cơ mất nợ"},
+    {q:"Khoản vay nào đáo hạn gần nhất?", a:"Khoản vay <strong>BIDV 1.5 tỷ</strong> đáo hạn <strong>18/07/2026</strong> (còn 17 ngày). Cần gia hạn hoặc chuẩn bị thanh toán."},
+    {q:"Hóa đơn rủi ro thuế tháng này?", a:"Phát hiện <strong>5 hóa đơn rủi ro</strong>: 3 từ NCC mới thành lập &lt;12 tháng (840 tr) và 2 giá trị bất thường (400 tr)."},
+    {q:"Nhóm sản phẩm doanh thu tốt nhất?", a:"<strong>TPCN: 5.8 tỷ (47%)</strong> cao nhất nhưng biên giảm. Thuốc kê đơn: 3.9 tỷ (32%) ổn định. Cần rà soát giá vốn TPCN."},
+  ],
+};
+
+// ─── RENDER FUNCTIONS ────────────────────────────────────────
+function renderAlerts(containerId, alerts) {
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  c.innerHTML = alerts.map(a => `
+    <div class="alert-item ${a.level}">
+      <div class="alert-title">${a.title}</div>
+      <div class="alert-desc">${a.desc.replace(/\n/g,'<br>')}</div>
+    </div>`).join('');
+}
+
+function renderProgress(containerId, items) {
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  c.innerHTML = items.map(i => `
+    <div class="progress-wrap">
+      <div class="progress-label"><span>${i.label}</span><span style="color:${i.color}">${i.value}</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${i.pct}%;background:${i.color}"></div></div>
+    </div>`).join('');
+}
+
+function renderLoans(containerId, loans) {
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  c.innerHTML = loans.map(l => `
+    <div class="progress-wrap">
+      <div class="progress-label"><span>${l.name} – ${l.detail}</span><span style="color:${l.color}">${l.amount}</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${l.pct}%;background:${l.color}"></div></div>
+    </div>`).join('');
+}
+
+function renderInvTable(data) {
+  document.getElementById('invTableBody').innerHTML = data.map(r => `
+    <tr class="${r.cls}">
+      <td>${r.name}</td><td>${r.lo}</td><td>${r.han}</td>
+      <td>${r.ton}</td><td>${r.giatri}</td>
+      <td><span class="badge ${r.badge}">${r.badgeText}</span></td>
+    </tr>`).join('');
+}
+
+function renderArList(containerId, rows) {
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  c.innerHTML = rows.map(r => `
+    <div class="ar-row">
+      <div><div class="ar-name">${r.name}</div><div class="ar-sub">${r.sub}</div></div>
+      <div style="text-align:right">
+        <div class="ar-amount" style="color:${r.amtColor}">${r.amount}</div>
+        <div class="ar-age" style="color:${r.ageColor}">${r.age}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderPL(headers, rows, alertObj, segs) {
+  document.getElementById('plHeader').innerHTML = headers.map(h => `<th>${h}</th>`).join('');
+  document.getElementById('plBody').innerHTML = rows.map(r => `
+    <tr class="${r.hl?'hl':''}">
+      <td>${r.label}</td>
+      ${r.vals.map((v,i) => `<td class="${r.dn[i]?'dn':''}">${v}</td>`).join('')}
+    </tr>`).join('');
+  if (alertObj) renderAlerts('plAlertContainer', [alertObj]);
+  renderProgress('plSegContainer', segs);
+}
+
+function renderChat(history, suggestions) {
+  const c = document.getElementById('chatMessages');
+  c.innerHTML = history.map(m => `
+    <div>
+      <div class="chat-label">${m.role==='user'?'👤 Giám đốc':'🤖 AI CFO'}</div>
+      <div class="chat-msg ${m.role}">${m.text}</div>
+    </div>`).join('');
+
+  const sc = document.getElementById('chatSuggestions');
+  sc.innerHTML = suggestions.map(s => `
+    <button onclick="askQ(this,'${s.a.replace(/'/g,"&#39;")}')"
+      style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:10px 13px;text-align:left;font-size:12px;cursor:pointer;color:var(--navy)">
+      💬 ${s.q}
+    </button>`).join('');
+}
+
+function applyData(d) {
+  // Header
+  document.getElementById('companyName').textContent = d.company || 'HOÀNG HẢI PHARMA';
+  document.getElementById('settingCompany').value = d.company || 'HOÀNG HẢI PHARMA';
+  // Banner
+  document.getElementById('alertHeadline').textContent = d.alertHeadline;
+  document.getElementById('kpi1').textContent = d.kpi1;
+  document.getElementById('kpi2').textContent = d.kpi2;
+  document.getElementById('kpi3').textContent = d.kpi3;
+  // Home stats
+  document.getElementById('h-bank').textContent = d.bank;
+  document.getElementById('h-cf7').textContent = d.cf7;
+  document.getElementById('h-ar').textContent = d.ar;
+  document.getElementById('h-ap').textContent = d.ap;
+  document.getElementById('h-rev').textContent = d.rev;
+  document.getElementById('h-gp').textContent = d.gp;
+  document.getElementById('h-gpm').textContent = d.gpm;
+  document.getElementById('h-ebit').textContent = d.ebit;
+  document.getElementById('cfUpdateTime').textContent = 'Cập nhật lúc ' + d.updateTime;
+  // CF
+  document.getElementById('cf-bank').textContent = d.bank;
+  document.getElementById('cf-loan').textContent = d.cfLoan;
+  document.getElementById('cf-in7').textContent = d.cfIn7;
+  document.getElementById('cf-out7').textContent = d.cfOut7;
+  // Inv
+  document.getElementById('inv-total').textContent = d.invTotal;
+  document.getElementById('inv-turnover').textContent = d.invTurnover;
+  document.getElementById('inv-near').textContent = d.invNear;
+  document.getElementById('inv-low').textContent = d.invLow;
+  document.getElementById('invSubtitle').textContent = 'Tổng ' + d.invTotal + ' theo dõi';
+  // Tax
+  document.getElementById('tax-risk').textContent = d.taxRisk;
+  document.getElementById('tax-refund').textContent = d.taxRefund;
+  document.getElementById('tax-due').textContent = d.taxDue;
+  document.getElementById('tax-deadline').textContent = d.taxDeadline;
+  // AR
+  document.getElementById('ar-total').textContent = d.arTotal;
+  document.getElementById('ar-over30').textContent = d.arOver30;
+  document.getElementById('ar-risk').textContent = d.arRisk;
+  document.getElementById('ar-expect').textContent = d.arExpect;
+
+  renderAlerts('alertsContainer', d.alerts);
+  renderAlerts('cfAlertsContainer', d.cfAlerts);
+  renderLoans('loansContainer', d.loans);
+  renderProgress('invProgressContainer', d.invProgress);
+  renderAlerts('invAlertsContainer', d.invAlerts);
+  renderInvTable(d.invRows);
+  renderAlerts('taxAlertsContainer', d.taxAlerts);
+  renderProgress('taxProgressContainer', d.taxProgress);
+  renderAlerts('arAlertsContainer', d.arAlerts);
+  renderArList('arListContainer', d.arRows);
+  renderPL(d.plHeaders, d.plRows, d.plAlert, d.plSegs);
+  renderChat(d.chatHistory, d.chatSuggestions);
+}
+
+// ─── GOOGLE SHEETS LOADER ────────────────────────────────────
+async function loadFromSheets(url) {
+  showLoading('Đọc dữ liệu từ Google Sheets...');
+  try {
+    const resp = await fetch(url + '&t=' + Date.now());
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const text = await resp.text();
+    const rows = text.split('\n').map(r => r.split(',').map(c => c.trim().replace(/^"|"$/g,'')));
+    // Parse key-value pairs
+    const map = {};
+    rows.forEach(r => { if(r[0]) map[r[0]] = r[1] || ''; });
+
+    // Build data object from sheet (extend DEMO with sheet overrides)
+    const d = Object.assign({}, DEMO);
+    // Simple scalar fields
+    const fields = ['company','bank','cf7','ar','ap','cfLoan','cfIn7','cfOut7',
+      'invTotal','invTurnover','invNear','invLow','taxRisk','taxRefund','taxDue',
+      'taxDeadline','arTotal','arOver30','arRisk','arExpect','rev','gp','gpm','ebit',
+      'kpi1','kpi2','kpi3','alertHeadline','updateTime'];
+    fields.forEach(f => { if(map[f]) d[f] = map[f]; });
+
+    applyData(d);
+    setStatus(true, 'Google Sheets');
+    hideLoading();
+    showToast('✅ Đã cập nhật từ Google Sheets');
+    localStorage.setItem('sheetsUrl', url);
+  } catch(e) {
+    hideLoading();
+    showToast('❌ Không đọc được Sheet. Kiểm tra URL và publish setting.');
+    applyData(DEMO);
+    setStatus(false, 'Demo data');
+  }
+}
+
+// ─── UI HELPERS ──────────────────────────────────────────────
+function showLoading(msg) {
+  document.getElementById('loadingOverlay').style.display = 'flex';
+  document.getElementById('loadingMsg').textContent = msg || '';
+}
+function hideLoading() {
+  document.getElementById('loadingOverlay').style.display = 'none';
+}
+function setStatus(live, label) {
+  document.getElementById('statusDot').className = 'dot' + (live?' live':'');
+  document.getElementById('statusText').textContent = label;
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function showTab(id, tabBtn, bnavId) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(tabBtn) {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    tabBtn.classList.add('active');
+  } else {
+    const map = {home:0,cashflow:1,inventory:2,tax:3,ar:4,pl:5,chat:6,settings:7};
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    const idx = map[id];
+    if(idx!==undefined) document.querySelectorAll('.nav-btn')[idx].classList.add('active');
+  }
+  document.querySelectorAll('.bottom-btn').forEach(b => b.classList.remove('active'));
+  const bmap = {home:'bnav-home',cashflow:'bnav-cashflow',inventory:'bnav-inventory',pl:'bnav-pl',settings:'bnav-settings'};
+  if(bmap[id]) document.getElementById(bmap[id]).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function saveAndLoad() {
+  const url = document.getElementById('sheetsUrl').value.trim();
+  if(!url) { showToast('⚠️ Vui lòng nhập URL Google Sheet'); return; }
+  loadFromSheets(url);
+}
+
+function useDemo() {
+  applyData(DEMO);
+  setStatus(false, 'Demo data');
+  showToast('🎭 Đang dùng dữ liệu demo');
+}
+
+function saveSettings() {
+  const co = document.getElementById('settingCompany').value.trim();
+  if(co) { document.getElementById('companyName').textContent = co; localStorage.setItem('company', co); }
+  showToast('💾 Đã lưu cài đặt');
+}
+
+function copyTemplate() {
+  const url = 'https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms/edit';
+  navigator.clipboard?.writeText(url).then(() => showToast('📋 Đã copy link template!')).catch(() => showToast('Link: bit.ly/cfo-sheet-template'));
+}
+
+function askQ(btn, answer) {
+  const q = btn.textContent.replace('💬 ','').trim();
+  const chat = document.getElementById('chatMessages');
+  chat.innerHTML += `<div><div class="chat-label">👤 Giám đốc</div><div class="chat-msg user">${q}</div></div>`;
+  chat.innerHTML += `<div><div class="chat-label">🤖 AI CFO</div><div class="chat-msg ai" id="typing" style="color:var(--muted)">Đang phân tích...</div></div>`;
+  chat.lastElementChild.scrollIntoView({behavior:'smooth'});
+  setTimeout(() => {
+    document.getElementById('typing').innerHTML = answer;
+    document.getElementById('typing').removeAttribute('id');
+    document.getElementById('typing')?.scrollIntoView({behavior:'smooth'});
+    chat.lastElementChild.scrollIntoView({behavior:'smooth'});
+  }, 800);
+  btn.style.background = '#F0FDF4'; btn.style.borderColor = 'var(--green)';
+}
+
+// ─── INIT ─────────────────────────────────────────────────────
+(function init() {
+  // Date
+  const d = new Date();
+  const days = ['CN','T2','T3','T4','T5','T6','T7'];
+  document.getElementById('todayDate').textContent = days[d.getDay()] + ' ' + d.getDate() + '/' + (d.getMonth()+1) + '/' + d.getFullYear();
+
+  // Restore settings
+  const savedUrl = localStorage.getItem('sheetsUrl');
+  const savedCo = localStorage.getItem('company');
+  if(savedUrl) document.getElementById('sheetsUrl').value = savedUrl;
+  if(savedCo) document.getElementById('settingCompany').value = savedCo;
+
+  // Load
+  if(savedUrl) {
+    loadFromSheets(savedUrl);
+  } else {
+    applyData(DEMO);
+    setStatus(false, 'Demo data');
+  }
+})();
+</script>
+</body>
+</html>
